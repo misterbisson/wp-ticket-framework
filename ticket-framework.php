@@ -10,7 +10,12 @@ Author URI: http://maisonbisson.com/
 
 class wpTix {
 
+	var $url_base = 'do';
 	var $query_var = 'do';
+
+	function wpTix(){
+		$this->__construct();
+	}
 
 	function __construct(){
 		global $wpdb;
@@ -21,10 +26,6 @@ class wpTix {
 		add_action( 'init', array( &$this, 'init' ));
 		add_action( 'parse_query', array( &$this, 'parse_query' ), 1 );
 		add_action( 'did_ticket', array( &$this, 'did_ticket' ), 11 );
-	}
-
-	function wpTix(){
-		return( $this->__construct() );
 	}
 
 	function init(){
@@ -38,23 +39,43 @@ class wpTix {
 			$this->do_ticket( $query->query_vars[ $this->query_var ] );
 	}
 
-	function get_url( $ticket_name ){
+	function clean_up_after( $yes = TRUE ){
+		if( $yes )
+			add_action( 'did_ticket', array( &$this, 'did_ticket' ), 11 );
+		else
+			remove_action( 'did_ticket', array( &$this, 'did_ticket' ), 11 );
 	}
+
+	function get_url( $ticket_name ){
+		global $wp_rewrite;
+
+		if ( empty( $wp_rewrite->permalink_structure ))
+			return( get_settings( 'siteurl' ) .'/?'. $query_var .'='. urlencode( $ticket_name ));
+		else
+			return( get_settings( 'siteurl' ) .'/'. $this->url_base .'/'. urlencode( $ticket_name ));
+	}
+
 
 
 	function is_ticket( $ticket_name ){
 		global $wpdb;
 
-		$ticket_name = substr( sanitize_title_with_dashes( $ticket_name ), 0, 32 );
+		$ticket_name = substr( preg_replace( '/[^a-zA-Z0-9\-]/', '', $ticket_name ), 0, 32 );
 		if( empty( $ticket_name ))
 			return( FALSE );
 
-		$ticket = $wpdb->get_row( $wpdb->prepare("SELECT ticket_id, ticket, (SELECT action FROM $this->ticket_actions WHERE action_id = action_id) AS action, arg FROM $this->tickets WHERE ticket = %s LIMIT 1", $ticket_name) );
+
+		if ( !$ticket = wp_cache_get( $ticket_name, 'tickets' )) {
+			$ticket = $wpdb->get_row( $wpdb->prepare("SELECT t.ticket_id, t.ticket, a.action, t.arg FROM ( SELECT * FROM $this->tickets t USE INDEX (ticket) WHERE ticket = %s LIMIT 1 ) t JOIN $this->ticket_actions a ON a.action_id = t.action_id LIMIT 1", $ticket_name) );
+
+			wp_cache_add( $ticket_name, $ticket, 'tickets' );
+		}
 
 		if( ! $ticket )
 			return( FALSE );
 
 		$ticket->arg = maybe_unserialize( $ticket->arg );
+		$ticket->url = $this->get_url( $ticket->ticket );
 
 		return( $ticket );
 	}
@@ -66,7 +87,7 @@ class wpTix {
 		if( !$ticket['action_id'] )
 			return( FALSE );
 
-		$ticket['ticket'] = substr( sanitize_title_with_dashes( $ticket_name ), 0, 32 );
+		$ticket['ticket'] = substr( preg_replace( '/[^a-zA-Z0-9\-]/', '', $ticket_name ), 0, 32 );
 		if( empty( $ticket['ticket'] ))
 			return( FALSE );
 
@@ -77,7 +98,9 @@ class wpTix {
 			return( FALSE );
 		}
 
-		return( TRUE );
+		wp_cache_add( $ticket_name, $ticket, 'tickets' );
+
+		return( $this->is_ticket( $ticket_name ));
 	}
 
 	function do_ticket( $ticket_name ){
@@ -96,7 +119,7 @@ class wpTix {
 
 	function did_ticket( $ticket ){
 		$this->delete_ticket( $ticket->ticket );
-			die( wp_redirect( get_settings( 'siteurl' ), '301'));
+		die( wp_redirect( get_settings( 'siteurl' ), '301'));
 	}
 
 	function delete_ticket( $ticket_name ){
@@ -113,11 +136,22 @@ class wpTix {
 
 
 	function generate_md5() {
-		return( md5( uniqid( rand(), true )));
+		while( TRUE ){
+			$ticket_name = md5( uniqid( rand(), true ));
+			if( ! $this->is_ticket( $ticket_name ))
+				return( $ticket_name );
+		}
 	}
 
 	function generate_string( $len = 5, $alphabet = '1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' ){
+		while( TRUE ){
+			$ticket_name = $this->_generate_string();
+			if( ! $this->is_ticket( $ticket_name ))
+				return( $ticket_name );
+		}
+	}
 
+	function _generate_string( $len = 5, $alphabet = '1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' ){
 		$key = '';
 		for( $i=0; $i < $len; $i++ )
 			$key .= $alphabet[ rand( 0, ( strlen( $alphabet )) -1 ) ];
@@ -131,7 +165,7 @@ class wpTix {
 	function _is_action( $action ) {
 		global $wpdb;
 
-		$action = substr( sanitize_title_with_dashes( $action ), 0, 64 );
+		$action = substr( preg_replace( '/[^a-zA-Z0-9\-]/', '', $action ), 0, 64 );
 		if( empty( $action ))
 			return( FALSE );
 
@@ -148,7 +182,7 @@ class wpTix {
 		global $wpdb;
 
 		if ( !$action_id = $this->_is_action( $action )) {
-			$action = substr( sanitize_title_with_dashes( $action ), 0, 64 );
+			$action = substr( preg_replace( '/[^a-zA-Z0-9\-]/', '', $action ), 0, 64 );
 			if( empty( $action ))
 				return( FALSE );
 
