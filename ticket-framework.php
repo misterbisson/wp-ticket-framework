@@ -26,6 +26,9 @@ class wpTix {
 		add_action( 'init', array( &$this, 'init' ));
 		add_action( 'parse_query', array( &$this, 'parse_query' ), 1 );
 		add_action( 'did_ticket', array( &$this, 'did_ticket' ), 11 );
+//		add_action( 'template_redirect', array( &$this, 'template_redirect' ), 11 );
+
+		register_activation_hook( __FILE__, array( &$this, '_activate' ));
 	}
 
 	function init(){
@@ -44,6 +47,12 @@ class wpTix {
 			add_action( 'did_ticket', array( &$this, 'did_ticket' ), 11 );
 		else
 			remove_action( 'did_ticket', array( &$this, 'did_ticket' ), 11 );
+	}
+
+	function template_redirect(){
+		if( $template = get_page_template() )
+			include( $template );
+			die();
 	}
 
 	function get_url( $ticket_name ){
@@ -200,5 +209,41 @@ class wpTix {
 
 
 
+	function _activate() {
+		global $wpdb;
+
+		$charset_collate = '';
+		if ( version_compare(mysql_get_server_info(), '4.1.0', '>=') ) {
+			if ( ! empty($wpdb->charset) )
+				$charset_collate = "DEFAULT CHARACTER SET $wpdb->charset";
+			if ( ! empty($wpdb->collate) )
+				$charset_collate .= " COLLATE $wpdb->collate";
+		}
+
+		require_once(ABSPATH . 'wp-admin/upgrade-functions.php');
+
+		dbDelta("
+			CREATE TABLE $this->tickets (
+				ticket_id bigint(20) NOT NULL auto_increment,
+				action_id int(11) NOT NULL,
+				ticket varchar(32) NOT NULL,
+				arg longtext NOT NULL,
+				PRIMARY KEY  (ticket_id),
+				UNIQUE KEY ticket_uniq (ticket),
+				KEY ticket (ticket(1))
+			) ENGINE=MyISAM $charset_collate
+			");
+
+		dbDelta("
+			CREATE TABLE $this->ticket_actions (
+				action_id int(11) NOT NULL auto_increment,
+				action varchar(64) NOT NULL,
+				PRIMARY KEY  (action_id),
+				UNIQUE KEY action_uniq (action),
+				KEY action (action(1))
+			) ENGINE=MyISAM $charset_collate
+			");
+	}
 }
+
 $wptix = new wpTix();
