@@ -89,7 +89,7 @@ class wpTix {
 		return( $ticket );
 	}
 
-	function register_ticket( $ticket_name, $action, $arg = '' ){
+	function register_ticket( $action, $ticket_name, $arg = '' ){
 		global $wpdb;
 
 		$ticket['action_id'] = $this->_insert_action( $action );
@@ -174,7 +174,7 @@ class wpTix {
 	function _is_action( $action ) {
 		global $wpdb;
 
-		$action = substr( preg_replace( '/[^a-zA-Z0-9\-]/', '', $action ), 0, 64 );
+		$action = substr( preg_replace( '/[^a-zA-Z0-9\-_]/', '', $action ), 0, 64 );
 		if( empty( $action ))
 			return( FALSE );
 
@@ -191,7 +191,7 @@ class wpTix {
 		global $wpdb;
 
 		if ( !$action_id = $this->_is_action( $action )) {
-			$action = substr( preg_replace( '/[^a-zA-Z0-9\-]/', '', $action ), 0, 64 );
+			$action = substr( preg_replace( '/[^a-zA-Z0-9\-_]/', '', $action ), 0, 64 );
 			if( empty( $action ))
 				return( FALSE );
 
