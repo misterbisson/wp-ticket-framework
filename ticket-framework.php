@@ -115,6 +115,8 @@ class wpTix {
 	function do_ticket( $ticket_name ){
 		global $wpdb;
 
+		nocache_headers();
+
 		$ticket = $this->is_ticket( $ticket_name );
 		if( ! $ticket )
 			die( wp_redirect( get_settings( 'siteurl' ), '301'));
