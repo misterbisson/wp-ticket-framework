@@ -59,7 +59,7 @@ class wpTix {
 		global $wp_rewrite;
 
 		if ( empty( $wp_rewrite->permalink_structure ))
-			return( get_settings( 'siteurl' ) .'/?'. $query_var .'='. urlencode( $ticket_name ));
+			return( get_settings( 'siteurl' ) .'/?'. $this->query_var .'='. urlencode( $ticket_name ));
 		else
 			return( get_settings( 'siteurl' ) .'/'. $this->url_base .'/'. urlencode( $ticket_name ));
 	}
@@ -92,6 +92,8 @@ class wpTix {
 	function register_ticket( $action, $ticket_name, $arg = '' ){
 		global $wpdb;
 
+		$ticket = array();
+
 		$ticket['action_id'] = $this->_insert_action( $action );
 		if( !$ticket['action_id'] )
 			return( FALSE );
@@ -107,10 +109,39 @@ class wpTix {
 			return( FALSE );
 		}
 
-		wp_cache_add( $ticket_name, $ticket, 'tickets' );
+		wp_cache_add( $ticket['ticket'], $ticket, 'tickets' );
 
 		return( $this->is_ticket( $ticket_name ));
 	}
+
+	/**
+	 * Update a ticket's action or arg array.
+	 */
+	function update_ticket( $ticket ) {
+		global $wpdb;
+
+		if( !$ticket->ticket_id ) {
+			return false;
+		}
+
+		$ticket->action_id = $this->_insert_action( $ticket->action );
+		if( !$ticket->action_id )
+			return( FALSE );
+
+		$ticket->arg = maybe_serialize( $ticket->arg );
+
+		$data = array('action_id' => $ticket->action_id, 'arg' => $ticket->arg);
+		$where = array('ticket' => $ticket->ticket);
+
+		if ( false === $wpdb->update( $this->tickets, $data, $where ) ){
+			new WP_Error('db_update_error', __('Could not update ticket in the database'), $wpdb->last_error);
+			return( FALSE );
+		}
+
+		wp_cache_set( $ticket->ticket, $ticket, 'tickets' );
+
+		return( $this->is_ticket( $ticket->ticket ));
+	}//end update_ticket
 
 	function do_ticket( $ticket_name ){
 		global $wpdb;
@@ -139,6 +170,8 @@ class wpTix {
 		$ticket = $this->is_ticket( $ticket_name );
 		if( ! $ticket )
 			return( FALSE );
+
+		wp_cache_delete( $ticket_name, 'tickets' );
 
 		return( $wpdb->query( $wpdb->prepare( "DELETE FROM $this->tickets WHERE ticket_id = %d", $ticket->ticket_id ) ));
 	}
