@@ -52,16 +52,16 @@ class wpTix {
 	function template_redirect(){
 		if( $template = get_page_template() )
 			include( $template );
-			die();
+			die;
 	}
 
 	function get_url( $ticket_name ){
 		global $wp_rewrite;
 
 		if ( empty( $wp_rewrite->permalink_structure ))
-			return( get_settings( 'siteurl' ) .'/?'. $this->query_var .'='. urlencode( $ticket_name ));
+			return get_settings( 'siteurl' ) .'/?'. $this->query_var .'='. urlencode( $ticket_name );
 		else
-			return( get_settings( 'siteurl' ) .'/'. $this->url_base .'/'. urlencode( $ticket_name ));
+			return get_settings( 'siteurl' ) .'/'. $this->url_base .'/'. urlencode( $ticket_name );
 	}
 
 
@@ -71,7 +71,7 @@ class wpTix {
 
 		$ticket_name = substr( preg_replace( '/[^a-zA-Z0-9\-]/', '', $ticket_name ), 0, 32 );
 		if( empty( $ticket_name ))
-			return( FALSE );
+			return FALSE;
 
 
 		if ( !$ticket = wp_cache_get( $ticket_name, 'tickets' )) {
@@ -81,12 +81,12 @@ class wpTix {
 		}
 
 		if( ! $ticket )
-			return( FALSE );
+			return FALSE;
 
 		$ticket->arg = maybe_unserialize( $ticket->arg );
 		$ticket->url = $this->get_url( $ticket->ticket );
 
-		return( $ticket );
+		return $ticket;
 	}
 
 	function register_ticket( $action, $ticket_name, $arg = '' ){
@@ -96,22 +96,22 @@ class wpTix {
 
 		$ticket['action_id'] = $this->_insert_action( $action );
 		if( !$ticket['action_id'] )
-			return( FALSE );
+			return FALSE;
 
 		$ticket['ticket'] = substr( preg_replace( '/[^a-zA-Z0-9\-]/', '', $ticket_name ), 0, 32 );
 		if( empty( $ticket['ticket'] ))
-			return( FALSE );
+			return FALSE;
 
 		$ticket['arg'] = maybe_serialize( $arg );
 
 		if ( false === $wpdb->insert( $this->tickets, $ticket) ){
 			new WP_Error('db_insert_error', __('Could not insert new ticket_action into the database'), $wpdb->last_error);
-			return( FALSE );
+			return FALSE;
 		}
 
 		wp_cache_add( $ticket['ticket'], $ticket, 'tickets' );
 
-		return( $this->is_ticket( $ticket_name ));
+		return $this->is_ticket( $ticket_name );
 	}
 
 	/**
@@ -126,7 +126,7 @@ class wpTix {
 
 		$ticket->action_id = $this->_insert_action( $ticket->action );
 		if( !$ticket->action_id )
-			return( FALSE );
+			return FALSE;
 
 		$ticket->arg = maybe_serialize( $ticket->arg );
 
@@ -135,12 +135,12 @@ class wpTix {
 
 		if ( false === $wpdb->update( $this->tickets, $data, $where ) ){
 			new WP_Error('db_update_error', __('Could not update ticket in the database'), $wpdb->last_error);
-			return( FALSE );
+			return FALSE;
 		}
 
 		wp_cache_set( $ticket->ticket, $ticket, 'tickets' );
 
-		return( $this->is_ticket( $ticket->ticket ));
+		return $this->is_ticket( $ticket->ticket );
 	}//end update_ticket
 
 	function do_ticket( $ticket_name ){
@@ -169,11 +169,11 @@ class wpTix {
 
 		$ticket = $this->is_ticket( $ticket_name );
 		if( ! $ticket )
-			return( FALSE );
+			return FALSE;
 
 		wp_cache_delete( $ticket_name, 'tickets' );
 
-		return( $wpdb->query( $wpdb->prepare( "DELETE FROM $this->tickets WHERE ticket_id = %d", $ticket->ticket_id ) ));
+		return $wpdb->query( $wpdb->prepare( "DELETE FROM $this->tickets WHERE ticket_id = %d", $ticket->ticket_id ));
 	}
 
 
@@ -183,15 +183,15 @@ class wpTix {
 		while( TRUE ){
 			$ticket_name = md5( uniqid( rand(), true ));
 			if( ! $this->is_ticket( $ticket_name ))
-				return( $ticket_name );
+				return $ticket_name;
 		}
 	}
 
 	function generate_string( $len = 5, $alphabet = '1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' ){
 		while( TRUE ){
-			$ticket_name = $this->_generate_string();
+			$ticket_name = $this->_generate_string( $len , $alphabet );
 			if( ! $this->is_ticket( $ticket_name ))
-				return( $ticket_name );
+				return $ticket_name;
 		}
 	}
 
@@ -200,7 +200,7 @@ class wpTix {
 		for( $i=0; $i < $len; $i++ )
 			$key .= $alphabet[ rand( 0, ( strlen( $alphabet )) -1 ) ];
 
-		return( $key );
+		return $key;
 	}
 
 
@@ -211,7 +211,7 @@ class wpTix {
 
 		$action = substr( preg_replace( '/[^a-zA-Z0-9\-_]/', '', $action ), 0, 64 );
 		if( empty( $action ))
-			return( FALSE );
+			return FALSE;
 
 		if ( !$action_id = wp_cache_get( $action, 'ticket_actions' )) {
 			$action_id = (int) $wpdb->get_var( $wpdb->prepare( "SELECT action_id FROM $this->ticket_actions WHERE action = %s", $action ));
@@ -219,7 +219,7 @@ class wpTix {
 			wp_cache_add( $action, $action_id, 'ticket_actions' );
 		}
 
-		return( $action_id );
+		return $action_id;
 	}
 	
 	function _insert_action( $action ) {
@@ -228,18 +228,18 @@ class wpTix {
 		if ( !$action_id = $this->_is_action( $action )) {
 			$action = substr( preg_replace( '/[^a-zA-Z0-9\-_]/', '', $action ), 0, 64 );
 			if( empty( $action ))
-				return( FALSE );
+				return FALSE;
 
 			if ( false === $wpdb->insert( $this->ticket_actions, array( 'action' => $action )) ){
 				new WP_Error('db_insert_error', __('Could not insert new ticket_action into the database'), $wpdb->last_error);
-				return( FALSE );
+				return FALSE;
 			}
 			$action_id = (int) $wpdb->insert_id;
 			
 			wp_cache_add( $action, $action_id, 'ticket_actions' );
 		}
 
-		return( $action_id );
+		return $action_id;
 	}
 
 
