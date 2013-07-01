@@ -197,7 +197,7 @@ class wpTix {
 	}
 
 	/**
-	 * Close (delete) a ticket via URL handler
+	 * Close (delete) a ticket and redirect to siteurl
 	 * @internal
 	 */
 	function did_ticket( $ticket ){
