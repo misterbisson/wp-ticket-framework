@@ -62,7 +62,8 @@ class wpTix {
 	}
 
 	/**
-	 * @internal
+	 * Configures whether or not to delete the ticket & redirect to siteurl when the ticket is closed
+	 * @param boolean $yes whether or not to call self::did_ticket on ticket close
 	 */
 	function clean_up_after( $yes = TRUE ){
 		if( $yes )
