@@ -38,7 +38,6 @@ class wpTix {
 		add_action( 'init', array( &$this, 'init' ));
 		add_action( 'parse_query', array( &$this, 'parse_query' ), 1 );
 		add_action( 'did_ticket', array( &$this, 'did_ticket' ), 11 );
-//		add_action( 'template_redirect', array( &$this, 'template_redirect' ), 11 );
 
 		register_activation_hook( __FILE__, array( &$this, '_activate' ));
 	}
@@ -70,12 +69,6 @@ class wpTix {
 			add_action( 'did_ticket', array( &$this, 'did_ticket' ), 11 );
 		else
 			remove_action( 'did_ticket', array( &$this, 'did_ticket' ), 11 );
-	}
-
-	function template_redirect(){
-		if( $template = get_page_template() )
-			include( $template );
-			die;
 	}
 
 	/**
