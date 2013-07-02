@@ -8,15 +8,27 @@ Author: Casey Bisson
 Author URI: http://maisonbisson.com/
 */
 
+/**
+ * WordPress Ticket Framework
+ * @package wpTix
+ */
 class wpTix {
 
 	var $url_base = 'do';
 	var $query_var = 'do';
 
+	/**
+	 * Old-style constructor. Put all constructor code in __construct()
+	 * @internal
+	 */
 	function wpTix(){
 		$this->__construct();
 	}
 
+	/**
+	 * Standard constructor
+	 * @internal
+	 */
 	function __construct(){
 		global $wpdb;
 
@@ -26,22 +38,33 @@ class wpTix {
 		add_action( 'init', array( &$this, 'init' ));
 		add_action( 'parse_query', array( &$this, 'parse_query' ), 1 );
 		add_action( 'did_ticket', array( &$this, 'did_ticket' ), 11 );
-//		add_action( 'template_redirect', array( &$this, 'template_redirect' ), 11 );
 
 		register_activation_hook( __FILE__, array( &$this, '_activate' ));
 	}
 
+	/**
+	 * Init action handler. Sets up rewrites for tickets
+	 * @internal
+	 */
 	function init(){
 		// add the rewrite rules
 		add_rewrite_tag( '%'. $this->query_var .'%', '[^/]+' );
 		add_rewrite_rule( $this->query_var .'/([^/]+)' , 'index.php?'. $this->query_var .'=$matches[1]', 'top' );
 	}
 
+	/**
+	 * Parse_query action handler. Closes the requested ticket.
+	 * @internal
+	 */
 	function parse_query( $query ){
 		if( !empty( $query->query_vars[ $this->query_var ] ))
 			$this->do_ticket( $query->query_vars[ $this->query_var ] );
 	}
 
+	/**
+	 * Configures whether or not to delete the ticket & redirect to siteurl when the ticket is closed
+	 * @param boolean $yes whether or not to call self::did_ticket on ticket close
+	 */
 	function clean_up_after( $yes = TRUE ){
 		if( $yes )
 			add_action( 'did_ticket', array( &$this, 'did_ticket' ), 11 );
@@ -49,12 +72,11 @@ class wpTix {
 			remove_action( 'did_ticket', array( &$this, 'did_ticket' ), 11 );
 	}
 
-	function template_redirect(){
-		if( $template = get_page_template() )
-			include( $template );
-			die;
-	}
-
+	/**
+	 * Get the URL for a given ticket
+	 * @param string $ticket_name
+	 * @return string URL
+	 */
 	function get_url( $ticket_name ){
 		global $wp_rewrite;
 
@@ -65,7 +87,11 @@ class wpTix {
 	}
 
 
-
+	/**
+	 * Test if a ticket exists with a given name
+	 * @param string $ticket_name Unique ticket name
+	 * @return wpTix|false Ticket or false if not found
+	 */
 	function is_ticket( $ticket_name ){
 		global $wpdb;
 
@@ -89,6 +115,13 @@ class wpTix {
 		return $ticket;
 	}
 
+	/**
+	 * Create a ticket
+	 * @param string $action Hook to invoke when the ticket is closed
+	 * @param string $ticket_name Unique ticket name
+	 * @param mixed $arg Argument(s) to pass to $action
+	 * @return wpTix|false The ticket that was created, or false on error.
+	 */
 	function register_ticket( $action, $ticket_name, $arg = '' ){
 		global $wpdb;
 
@@ -143,6 +176,10 @@ class wpTix {
 		return $this->is_ticket( $ticket->ticket );
 	}//end update_ticket
 
+	/**
+	 * Close a ticket and perform its corresponding action
+	 * @param string $ticket_name Unique ticket name
+	 */
 	function do_ticket( $ticket_name ){
 		global $wpdb;
 
@@ -159,11 +196,20 @@ class wpTix {
 		do_action( 'did_ticket', $ticket );
 	}
 
+	/**
+	 * Close (delete) a ticket and redirect to siteurl
+	 * @internal
+	 */
 	function did_ticket( $ticket ){
 		$this->delete_ticket( $ticket->ticket );
 		die( wp_redirect( get_settings( 'siteurl' ), '301'));
 	}
 
+	/**
+	 * Delete a ticket
+	 * @param string $ticket_name Unique ticket name
+	 * @return boolean sucessful deletion
+	 */
 	function delete_ticket( $ticket_name ){
 		global $wpdb;
 
@@ -178,7 +224,10 @@ class wpTix {
 
 
 
-
+	/**
+	 * Generate a 32-character random, unique ticket name
+	 * @return string ticket name
+	 */
 	function generate_md5() {
 		while( TRUE ){
 			$ticket_name = md5( uniqid( rand(), true ));
@@ -187,6 +236,12 @@ class wpTix {
 		}
 	}
 
+	/**
+	 * Generate a random, unique ticket name with a given length, using a given alphabet
+	 * @param int $len string length
+	 * @param string $alphabet valid characters
+	 * @return string random string
+	 */
 	function generate_string( $len = 5, $alphabet = '1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' ){
 		while( TRUE ){
 			$ticket_name = $this->_generate_string( $len , $alphabet );
@@ -195,6 +250,13 @@ class wpTix {
 		}
 	}
 
+	/**
+	 * Generate a random string of a given length, using a given alphabet
+	 * @static
+	 * @param int $len string length
+	 * @param string $alphabet valid characters
+	 * @return string random string
+	 */
 	function _generate_string( $len = 5, $alphabet = '1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' ){
 		$key = '';
 		for( $i=0; $i < $len; $i++ )
@@ -203,9 +265,9 @@ class wpTix {
 		return $key;
 	}
 
-
-
-
+	/**
+	 * @internal
+	 */
 	function _is_action( $action ) {
 		global $wpdb;
 
@@ -221,7 +283,10 @@ class wpTix {
 
 		return $action_id;
 	}
-	
+
+	/**
+	 * @internal
+	 */
 	function _insert_action( $action ) {
 		global $wpdb;
 
@@ -235,7 +300,7 @@ class wpTix {
 				return FALSE;
 			}
 			$action_id = (int) $wpdb->insert_id;
-			
+
 			wp_cache_add( $action, $action_id, 'ticket_actions' );
 		}
 
@@ -243,7 +308,10 @@ class wpTix {
 	}
 
 
-
+	/**
+	 * Activation hook. Sets up database tables.
+	 * @internal
+	 */
 	function _activate() {
 		global $wpdb;
 
@@ -281,4 +349,5 @@ class wpTix {
 	}
 }
 
+// Single instance of wpTix (used instead of a singleton)
 $wptix = new wpTix();
