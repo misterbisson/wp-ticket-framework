@@ -18,14 +18,6 @@ class wpTix {
 	var $query_var = 'do';
 
 	/**
-	 * Old-style constructor. Put all constructor code in __construct()
-	 * @internal
-	 */
-	function wpTix(){
-		$this->__construct();
-	}
-
-	/**
 	 * Standard constructor
 	 * @internal
 	 */
@@ -81,9 +73,9 @@ class wpTix {
 		global $wp_rewrite;
 
 		if ( empty( $wp_rewrite->permalink_structure ))
-			return get_settings( 'siteurl' ) .'/?'. $this->query_var .'='. urlencode( $ticket_name );
+			return get_option( 'siteurl' ) .'/?'. $this->query_var .'='. urlencode( $ticket_name );
 		else
-			return get_settings( 'siteurl' ) .'/'. $this->url_base .'/'. urlencode( $ticket_name );
+			return get_option( 'siteurl' ) .'/'. $this->url_base .'/'. urlencode( $ticket_name );
 	}
 
 
@@ -187,7 +179,7 @@ class wpTix {
 
 		$ticket = $this->is_ticket( $ticket_name );
 		if( ! $ticket )
-			die( wp_redirect( get_settings( 'siteurl' ), '301'));
+			die( wp_redirect( get_option( 'siteurl' ), '301'));
 
 		// do the specified action
 		do_action( $ticket->action, $ticket->arg, $ticket );
@@ -202,7 +194,7 @@ class wpTix {
 	 */
 	function did_ticket( $ticket ){
 		$this->delete_ticket( $ticket->ticket );
-		die( wp_redirect( get_settings( 'siteurl' ), '301'));
+		die( wp_redirect( get_option( 'siteurl' ), '301'));
 	}
 
 	/**
