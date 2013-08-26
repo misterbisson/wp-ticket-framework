@@ -341,5 +341,17 @@ class wpTix {
 	}
 }
 
-// Single instance of wpTix (used instead of a singleton)
-$wptix = new wpTix();
+function wptix()
+{
+	global $wptix;
+
+	if ( ! $wptix )
+	{
+		$wptix = new wpTix;
+	}//end if
+
+	return $wptix;
+}//end wptix
+
+// Single instance of wpTix
+wptix();
